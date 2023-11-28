@@ -21,8 +21,9 @@ class LinkedScraper(BaseScraper):
 
     async def _search_people(self, envelope: str) -> str | dict:
         page = self.page
+        base_url = self.BASE_URL
 
-        search_url = f'{self.BASE_URL}search/results/people/?keywords={envelope}'
+        search_url = f'{base_url}search/results/people/?keywords={envelope}'
 
         await page.goto(search_url, wait_until='load')
 
@@ -37,7 +38,8 @@ class LinkedScraper(BaseScraper):
                 return 'No results'
 
         x = await people_list.inner_html()
-        print(x)
+        with open('index.html', 'x', encoding="utf-8") as file:
+            file.write(str(x))
 
     async def run(self, envelope: str):
         self.page = await self._config_playwright()
