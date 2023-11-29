@@ -1,6 +1,10 @@
+# import asyncio
 import asyncio
+import re
+
+from bs4 import BeautifulSoup
 from scraper.base import BaseScraper
-from config import envs
+from config import envs, logger
 from playwright.async_api import Error
 from scraper import xpaths
 
@@ -8,10 +12,20 @@ from scraper import xpaths
 class LinkedScraper(BaseScraper):
     BASE_URL = envs.LINKEDIN_BASE_URL
 
+    async def _run(self):
+        await self._authenticate(
+            username=envs.LINKEDIN_USERNAME,
+            password=envs.LINKEDIN_PASSWORD,
+        )
+
+        return await self._process()
+
     async def _authenticate(self, username: str, password: str) -> None:
+        logger.info('Authenticating ...')
+
         page = self.page
 
-        await page.goto(f'{self.BASE_URL}/uas/login/')
+        await page.goto(f'{self.BASE_URL}uas/login/')
 
         await page.locator('#username').fill(username)
         await page.locator('#password').fill(password)
@@ -19,36 +33,92 @@ class LinkedScraper(BaseScraper):
             '#organic-div > form > div.login__form_action_container > button'
         ).click()
 
-    async def _search_people(self, envelope: str) -> str | dict:
+    async def _process(self) -> list[dict]:
+        # TODO: Async this logic
+        people = []
+        for page in range(1, 100):
+            searched_people = await self._search_people(page)
+            scraped_people = await self._scrap_people(searched_people)
+
+            people.extend(scraped_people)
+
+            if len(people) > 20:
+                break
+
+        return people
+
+    async def _search_people(self, page_num: int) -> str:
         page = self.page
         base_url = self.BASE_URL
 
-        search_url = f'{base_url}search/results/people/?keywords={envelope}'
+        logger.info(f'Searching at page: {page_num}')
 
-        await page.goto(search_url, wait_until='load')
+        search_url = (
+            f'{base_url}search/results/people/'
+            f'?keywords={self.topic}&page={page_num}'
+        )
+
+        await page.goto(search_url, wait_until='domcontentloaded')
+        await asyncio.sleep(2)
 
         try:
-            people_list = page.locator(xpaths.PEOPLE_LIST_XPATH)
+            people_list = await page.locator(
+                xpaths.PEOPLE_LIST_XPATH
+            ).inner_html()
         except Error:
             page.reload(wait_until='load')
 
             try:
-                people_list = page.locator(xpaths.PEOPLE_LIST_XPATH)
+                people_list = await page.locator(
+                    xpaths.PEOPLE_LIST_XPATH
+                ).inner_html()
             except Error:
                 return 'No results'
 
-        x = await people_list.inner_html()
-        with open('index.html', 'x', encoding="utf-8") as file:
-            file.write(str(x))
+        return people_list
 
-    async def run(self, envelope: str):
-        self.page = await self._config_playwright()
+    async def _scrap_people(self, searched_people: str):
+        logger.info('Scrapping people')
 
-        await self._authenticate(
-            username=envs.LINKEDIN_USERNAME,
-            password=envs.LINKEDIN_PASSWORD,
+        soup = BeautifulSoup(searched_people, 'html.parser')
+
+        people = []
+
+        people_container = soup.find_all(
+            'li',
+            class_='reusable-search__result-container',
         )
-        await asyncio.sleep(2)
-        await self._search_people(envelope=envelope)
+        for container in people_container:
+            job_description = container.find(
+                'div', class_='entity-result__primary-subtitle'
+            ).text.strip()
 
-        await asyncio.sleep(10)
+            try:
+                summary = container.find(
+                    'p', class_='entity-result__summary'
+                ).text.strip()
+            except AttributeError:
+                summary = ''
+
+            if (
+                bool(re.search(self.topic, job_description, re.I)) or
+                bool(re.search(self.topic, summary, re.I))
+            ):
+                name = container.find(
+                    'span', class_='entity-result__title-text'
+                ).find('span', attrs={'aria-hidden': 'true'}).text.strip()
+
+                try:
+                    location = container.find(
+                        'div', class_='entity-result__secondary-subtitle'
+                    ).text.strip()
+                except AttributeError:
+                    location = ''
+
+                people.append({
+                    'name': name,
+                    'job_description': job_description,
+                    'location': location,
+                })
+
+        return people
