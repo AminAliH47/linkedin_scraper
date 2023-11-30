@@ -1,14 +1,14 @@
 import uuid
 from fastapi import APIRouter, HTTPException, status
 from celery.result import AsyncResult
-from scraper.tasks import run_linkedin_scraper
+from scraper.tasks import run_scraper
 
 v1_routers = APIRouter()
 
 
 @v1_routers.get('/linkedin')
 async def scrape_linkedin(topic: str, max_people: int = 20):
-    task = run_linkedin_scraper.apply_async(
+    task = run_scraper.apply_async(
         kwargs={'max_people': max_people, 'topic': topic}
     )
 
