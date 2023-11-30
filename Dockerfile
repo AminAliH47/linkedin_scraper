@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright/python:latest
+FROM mcr.microsoft.com/playwright/python:v1.39.0-jammy
 
 WORKDIR /app
 
@@ -14,4 +14,5 @@ COPY . /app/
 
 ENV PYTHONUNBUFFERED 1
 
+RUN chmod +x entrypoint.sh
 CMD [ "./entrypoint.sh" ]
