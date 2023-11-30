@@ -1,18 +1,21 @@
 # import asyncio
 import asyncio
+import json
 import re
 
 from bs4 import BeautifulSoup
-from scraper.base import BaseScraper
+from scraper.services.base import BaseScraper
 from config import envs, logger
 from playwright.async_api import Error
-from scraper import xpaths
+from scraper.services import xpaths
 
 
 class LinkedScraper(BaseScraper):
     BASE_URL = envs.LINKEDIN_BASE_URL
 
-    async def _run(self):
+    async def _run(self, *args, **kwargs):
+        self.max_people = kwargs.get('max_people', 20)
+
         await self._authenticate(
             username=envs.LINKEDIN_USERNAME,
             password=envs.LINKEDIN_PASSWORD,
@@ -42,10 +45,10 @@ class LinkedScraper(BaseScraper):
 
             people.extend(scraped_people)
 
-            if len(people) > 20:
+            if len(people) > self.max_people:
                 break
 
-        return people
+        return json.dumps(people)
 
     async def _search_people(self, page_num: int) -> str:
         page = self.page

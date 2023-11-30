@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from playwright.async_api import Playwright, Page
 
@@ -15,8 +15,8 @@ class BaseScraper(ABC):
     async def _authenticate(self, username: str, password: str):
         ...
 
-    async def run(self, topic: str):
+    async def run(self, topic: str, *args, **kwargs):
         self.page = await self._config_playwright()
         self.topic = topic
 
-        await self._run()
+        return await self._run(*args, **kwargs)
