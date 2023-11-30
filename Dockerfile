@@ -1,7 +1,6 @@
-FROM registry.docker.ir/python:3.11-slim-bullseye
+FROM mcr.microsoft.com/playwright/python:latest
 
 WORKDIR /app
-
 
 ARG HTTP_PROXY
 
