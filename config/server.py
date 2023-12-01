@@ -38,7 +38,7 @@ def init_app():
         version='0.1.0',
         middleware=init_middleware(),
     )
-    init_db(app=app)
+    init_db(app=app_)
     init_routers(app=app_)
 
     return app_

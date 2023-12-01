@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from people.schemas import PeopleSchema
 from people.models import People
 from scraper.cookies import LINKEDIN_AUTHENTICATION_COOKIES
-from scraper.models import Tasks
+from scraper.models import Tasks, StateEnum
 from scraper.services.base import BaseScraper
 from config import envs, logger
 from playwright.async_api import Error
@@ -30,7 +30,11 @@ class LinkedScraper(BaseScraper):
                 **person
             ) for person in people_list
         ]
+
         task, created = await Tasks.get_or_create(task_id=self.task_id)
+        task.state = StateEnum.SUCCESS
+        await task.save()
+
         people = [
             People(
                 name=person.name,
@@ -40,7 +44,7 @@ class LinkedScraper(BaseScraper):
                 task=task,
             ) for person in validated_people
         ]
-        People.bulk_create(people)
+        await People.bulk_create(people)
 
         return json.dumps(people_list)
 
