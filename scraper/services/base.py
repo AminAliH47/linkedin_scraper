@@ -1,4 +1,5 @@
 from abc import ABC
+from uuid import UUID
 
 from playwright.async_api import Playwright, Page
 
@@ -15,8 +16,9 @@ class BaseScraper(ABC):
     async def _authenticate(self, username: str, password: str):
         ...
 
-    async def run(self, topic: str, *args, **kwargs):
+    async def run(self, task_id: UUID, topic: str, *args, **kwargs):
         self.page = await self._config_playwright()
         self.topic = topic
+        self.task_id = task_id
 
         return await self._run(*args, **kwargs)

@@ -1,10 +1,12 @@
-# import asyncio
 import asyncio
 import json
 import re
 
 from bs4 import BeautifulSoup
+from people.schemas import PeopleSchema
+from people.models import People
 from scraper.cookies import LINKEDIN_AUTHENTICATION_COOKIES
+from scraper.models import Tasks
 from scraper.services.base import BaseScraper
 from config import envs, logger
 from playwright.async_api import Error
@@ -21,15 +23,38 @@ class LinkedScraper(BaseScraper):
             username=envs.LINKEDIN_USERNAME,
             password=envs.LINKEDIN_PASSWORD,
         )
+        people_list = await self._process()
 
-        return await self._process()
+        validated_people = [
+            PeopleSchema(
+                **person
+            ) for person in people_list
+        ]
+        task, created = await Tasks.get_or_create(task_id=self.task_id)
+        people = [
+            People(
+                name=person.name,
+                job_description=person.job_description,
+                location=person.location,
+                additional_data=person.additional_data,
+                task=task,
+            ) for person in validated_people
+        ]
+        People.bulk_create(people)
+
+        return json.dumps(people_list)
 
     async def _authenticate(self, username: str, password: str) -> None:
         logger.info('Authenticating ...')
 
         page = self.page
 
-        await page.goto(f'{self.BASE_URL}uas/login/')
+        try:
+            await page.goto(f'{self.BASE_URL}uas/login/')
+        except Error:
+            await page.reload(timeout=60000)
+
+        await asyncio.sleep(1)
 
         await page.context.add_cookies(LINKEDIN_AUTHENTICATION_COOKIES)
 
@@ -54,7 +79,7 @@ class LinkedScraper(BaseScraper):
             if len(people) > self.max_people:
                 break
 
-        return json.dumps(people)
+        return people
 
     async def _search_people(self, page_num: int) -> str:
         page = self.page
@@ -75,7 +100,7 @@ class LinkedScraper(BaseScraper):
                 xpaths.PEOPLE_LIST_XPATH
             ).inner_html()
         except Error:
-            page.reload(wait_until='load')
+            await page.reload(timeout=60000, wait_until='load')
 
             try:
                 people_list = await page.locator(
