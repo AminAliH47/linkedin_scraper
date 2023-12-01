@@ -1,5 +1,12 @@
 from config import envs
+from datetime import timedelta
 
+JWT_AUTHENTICATION = {
+    'ACCESS_TOKEN_EXPIRE_MINUTES': timedelta(minutes=10),
+    'REFRESH_TOKEN_EXPIRE_MINUTES': timedelta(days=7),
+    'ALGORITHM': 'HS256',
+    'SECRET_KEY': envs.SECRET_KEY,
+}
 
 TORTOISE_ORM = {
     'connections': {
@@ -15,6 +22,12 @@ TORTOISE_ORM = {
         },
     },
     'apps': {
+        'auth': {
+            'models': [
+                'auth.models',
+            ],
+            'default_connection': 'default',
+        },
         'scraper': {
             'models': [
                 'scraper.models'

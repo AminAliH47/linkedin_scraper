@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from tortoise.contrib.fastapi import register_tortoise
 
 from scraper.routers import scraper_routers
+from auth.routers import auth_routers
 from config.settings import ALLOW_ORIGINS, TORTOISE_ORM
 
 
@@ -18,6 +19,7 @@ def init_db(app: FastAPI) -> None:
 
 def init_routers(app: FastAPI) -> None:
     app.include_router(router=scraper_routers)
+    app.include_router(router=auth_routers)
 
 
 def init_middleware() -> list[Middleware]:

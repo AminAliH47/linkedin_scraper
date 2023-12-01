@@ -3,7 +3,18 @@ from tortoise import BaseDBAsyncClient
 
 async def upgrade(db: BaseDBAsyncClient) -> str:
     return """
-        CREATE TABLE IF NOT EXISTS "tasks" (
+        CREATE TABLE IF NOT EXISTS "users" (
+    "id" BIGSERIAL NOT NULL PRIMARY KEY,
+    "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+    "deleted_at" TIMESTAMPTZ,
+    "is_deleted" BOOL NOT NULL  DEFAULT False,
+    "username" VARCHAR(20) NOT NULL UNIQUE,
+    "email" VARCHAR(255)  UNIQUE,
+    "password" VARCHAR(255) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "idx_users_usernam_266d85" ON "users" ("username");
+CREATE TABLE IF NOT EXISTS "tasks" (
     "id" BIGSERIAL NOT NULL PRIMARY KEY,
     "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,

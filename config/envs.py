@@ -2,6 +2,8 @@ from pydantic_settings import BaseSettings
 
 
 class EnvsConfig(BaseSettings):
+    SECRET_KEY: str
+
     LINKEDIN_BASE_URL: str
     LINKEDIN_USERNAME: str
     LINKEDIN_PASSWORD: str
