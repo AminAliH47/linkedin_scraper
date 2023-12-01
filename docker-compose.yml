@@ -16,11 +16,11 @@ services:
         limits:
           cpus: "1"
           memory: 1G
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "http://localhost:${PORT:-5555}/api/v1/heartbeat"]
-    #   interval: 5s
-    #   timeout: 10s
-    #   retries: 5
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-9001}/v1/scrapers/heartbeat"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
 
   db:
     image: registry.docker.ir/postgres:latest
@@ -41,6 +41,11 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 5s
+      timeout: 10s
+      retries: 5
     deploy:
       resources:
         limits:
@@ -53,8 +58,20 @@ services:
     command: celery -A config.celery.celery worker --loglevel=info
     env_file: [.env]
     depends_on:
-      - web
-      - redis
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+  
+  flower:
+    build: .
+    container_name: worker_monitor
+    ports:
+      - '5555:5555'
+    command: celery -A config.celery.celery flower --ports=5555
+    env_file: [.env]
+    depends_on:
+      - worker
 
 volumes:
   postgres_data:

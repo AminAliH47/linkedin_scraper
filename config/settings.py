@@ -2,7 +2,7 @@ from config import envs
 from datetime import timedelta
 
 JWT_AUTHENTICATION = {
-    'ACCESS_TOKEN_EXPIRE_MINUTES': timedelta(minutes=10),
+    'ACCESS_TOKEN_EXPIRE_MINUTES': timedelta(minutes=5),
     'REFRESH_TOKEN_EXPIRE_MINUTES': timedelta(days=7),
     'ALGORITHM': 'HS256',
     'SECRET_KEY': envs.SECRET_KEY,
@@ -25,8 +25,7 @@ TORTOISE_ORM = {
         'auth': {
             'models': [
                 'auth.models',
-            ],
-            'default_connection': 'default',
+            ]
         },
         'scraper': {
             'models': [

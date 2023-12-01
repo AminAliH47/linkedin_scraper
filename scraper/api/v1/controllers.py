@@ -6,6 +6,7 @@ from auth.schemas import UserPydantic
 from auth.utils import AuthSystem
 from people.models import People
 from people.schemas import PeoplePydanticList
+from scraper.models import Tasks
 from scraper.tasks import run_scraper
 
 
@@ -15,7 +16,11 @@ auth = AuthSystem()
 
 
 @v1_routers.get('/linkedin')
-async def scrape_linkedin(topic: str, max_people: int = 20):
+async def scrape_linkedin(
+    topic: str,
+    max_people: int = 20,
+    user: UserPydantic = Depends(auth.get_current_user),
+):
     task = run_scraper.apply_async(
         kwargs={'max_people': max_people, 'topic': topic}
     )
@@ -33,9 +38,7 @@ async def get_scraper_result(
 ):
     result = AsyncResult(str(task_id))
 
-
-    print(user)
-
+    # TODO: Add pagination in this endpoint
     people = People.filter(task__task_id=str(task_id))
     if await people.exists():
         people_json = await PeoplePydanticList.from_queryset(people)
@@ -55,3 +58,9 @@ async def get_scraper_result(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Task failed or does not exists ...'
         )
+
+
+@v1_routers.get("/heartbeat")
+async def scraper_heartbeat():
+    await Tasks.first()
+    return 'OK'

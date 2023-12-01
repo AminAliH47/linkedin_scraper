@@ -1,11 +1,26 @@
 from typing import Callable
 from tortoise import Tortoise
 
-from config import settings
+from config import envs
+
+DB_URL = (f'postgres://{envs.POSTGRES_USER}:{envs.POSTGRES_PASSWORD}'
+          f'@{envs.POSTGRES_HOST}:{envs.POSTGRES_PORT}/{envs.POSTGRES_DB}')
 
 
 async def connect_db():
-    await Tortoise.init(config=settings.TORTOISE_ORM)
+    await Tortoise.init(
+        db_url=DB_URL,
+        modules={
+            'models': [
+                'aerich.models',
+                'people.models',
+            ],
+            'scraper': [
+                'scraper.models',
+            ]
+        }
+    )
+    await Tortoise.generate_schemas()
 
 
 async def disconnect_db():
