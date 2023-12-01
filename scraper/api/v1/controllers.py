@@ -1,5 +1,6 @@
+from typing import Annotated
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from celery.result import AsyncResult
 from auth.schemas import UserPydantic
 
@@ -17,8 +18,8 @@ auth = AuthSystem()
 
 @v1_routers.get('/linkedin')
 async def scrape_linkedin(
-    topic: str,
-    max_people: int = 20,
+    topic: Annotated[str, Query(max_length=120)],
+    max_people: Annotated[int, Query(le=999)] = 20,
     user: UserPydantic = Depends(auth.get_current_user),
 ):
     task = run_scraper.apply_async(
